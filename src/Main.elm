@@ -8,11 +8,19 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
+import Circle2d
+import Geometry.Svg
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as JD exposing (Decoder, field, string)
+import KMeans
+import Length
+import Pixels
+import Point2d
+import Svg
+import Svg.Attributes as Attributes
 
 
 
@@ -30,6 +38,7 @@ main =
 type alias Model =
     { queries : String
     , queryResults : List QueryResult
+    , buildings : List Building
     }
 
 
@@ -40,14 +49,22 @@ type alias QueryResult =
     }
 
 
+type alias Building =
+    { displayName : String
+    , coordinates : Coordinates
+    , cluster : Int
+    }
+
+
 type alias Coordinates =
-    { latitiude : Float, longitude : Float }
+    { latitude : Float, longitude : Float }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { queries = ""
       , queryResults = []
+      , buildings = []
       }
     , Cmd.none
     )
@@ -115,6 +132,7 @@ stringFloat =
 type Msg
     = QueriesChange String
     | FetchQueries
+    | ClusterBuildings
     | GotQueryResult (Result Http.Error QueryResult)
 
 
@@ -141,19 +159,66 @@ update msg model =
             in
             ( model, Cmd.none )
 
+        ClusterBuildings ->
+            ( model, Cmd.none )
+
+
+queryResultToPoint : QueryResult -> Point2d.Point2d Pixels.Pixels a
+queryResultToPoint queryResult =
+    Point2d.pixels
+        queryResult.coordinates.latitude
+        queryResult.coordinates.longitude
+
+
+scale : Point2d.Point2d unit number -> Point2d.Point2d unit number
+scale =
+    Point2d.scaleAbout Point2d.origin 20
+
+
+colors : List String
+colors =
+    [ "red", "green", "purple" ]
+
 
 
 -- VIEW
 
 
+viewPoints : List (List QueryResult) -> List (Svg.Svg msg)
+viewPoints clusters =
+    let
+        viewPoint opacity color queryResult =
+            Geometry.Svg.circle2d
+                [ Attributes.opacity (String.fromFloat opacity)
+                , Attributes.fill color
+                ]
+                (Circle2d.withRadius (Pixels.pixels 4) (scale (queryResultToPoint queryResult)))
+    in
+    List.map2 (\color coordinates -> List.map (viewPoint 0.8 color) coordinates) colors clusters
+        |> List.concat
+
+
 view : Model -> Html Msg
 view model =
-    div []
-        [ textarea [ placeholder "Addresses", value model.queries, onInput QueriesChange ] []
+    div [ style "width" "100%" ]
+        [ textarea [ style "width" "100%", placeholder "Addresses", value model.queries, onInput QueriesChange ] []
         , button [ onClick FetchQueries ] [ text "Fetch Coordinates" ]
-        , div []
+        , div [ style "width" "100%" ]
             [ p [] [ text "Address:", text model.queries ]
             , p [] [ text "Buildings: ", text (Debug.toString (List.filter (\building -> building.osmClass == "building") model.queryResults)) ]
             , p [] [ text "Others:", text (Debug.toString (List.filter (\building -> building.osmClass /= "building") model.queryResults)) ]
+            ]
+        , div []
+            [ Svg.svg
+                [ Attributes.width "2000"
+                , Attributes.height "2000"
+                ]
+              <|
+                let
+                    clustered =
+                        KMeans.clusterExactlyBy (\building -> [ building.coordinates.longitude, building.coordinates.latitude ]) 3 model.queryResults
+                in
+                viewPoints
+                    clustered.clusters
             ]
         ]

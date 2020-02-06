@@ -5337,7 +5337,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		{queries: '', queryResults: _List_Nil},
+		{buildings: _List_Nil, queries: '', queryResults: _List_Nil},
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -6136,8 +6136,8 @@ var $elm$http$Http$get = function (r) {
 		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
 var $author$project$Main$Coordinates = F2(
-	function (latitiude, longitude) {
-		return {latitiude: latitiude, longitude: longitude};
+	function (latitude, longitude) {
+		return {latitude: latitude, longitude: longitude};
 	});
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$map4 = _Json_map4;
@@ -6213,7 +6213,7 @@ var $author$project$Main$update = F2(
 						model,
 						{queryResults: _List_Nil}),
 					$author$project$Main$fetchQueries(splittedQueries));
-			default:
+			case 'GotQueryResult':
 				if (msg.a.$ === 'Ok') {
 					var newQueryResult = msg.a.a;
 					return _Utils_Tuple2(
@@ -6228,6 +6228,8 @@ var $author$project$Main$update = F2(
 					var _v1 = A2($elm$core$Debug$log, 'Error', e);
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
+			default:
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Main$FetchQueries = {$: 'FetchQueries'};
@@ -6235,6 +6237,529 @@ var $author$project$Main$QueriesChange = function (a) {
 	return {$: 'QueriesChange', a: a};
 };
 var $elm$html$Html$button = _VirtualDom_node('button');
+var $folkertdev$elm_kmeans$KMeans$centroid = F2(
+	function (toPoint, items) {
+		var length = $elm$core$List$length(items);
+		var folder = F2(
+			function (element, accum) {
+				return A3(
+					$elm$core$List$map2,
+					$elm$core$Basics$add,
+					toPoint(element),
+					accum);
+			});
+		if (!items.b) {
+			return _List_Nil;
+		} else {
+			var first = items.a;
+			var rest = items.b;
+			var result = A2(
+				$elm$core$List$map,
+				function (x) {
+					return x / length;
+				},
+				A3(
+					$elm$core$List$foldl,
+					folder,
+					toPoint(first),
+					rest));
+			return result;
+		}
+	});
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $folkertdev$elm_kmeans$KMeans$foldl2 = F4(
+	function (f, xs, ys, accum) {
+		foldl2:
+		while (true) {
+			if (!xs.b) {
+				return accum;
+			} else {
+				var x = xs.a;
+				var xss = xs.b;
+				if (!ys.b) {
+					return accum;
+				} else {
+					var y = ys.a;
+					var yss = ys.b;
+					var $temp$f = f,
+						$temp$xs = xss,
+						$temp$ys = yss,
+						$temp$accum = A3(f, x, y, accum);
+					f = $temp$f;
+					xs = $temp$xs;
+					ys = $temp$ys;
+					accum = $temp$accum;
+					continue foldl2;
+				}
+			}
+		}
+	});
+var $folkertdev$elm_kmeans$KMeans$distanceSquaredHelp = F3(
+	function (xs, ys, accum) {
+		distanceSquaredHelp:
+		while (true) {
+			if (!xs.b) {
+				return accum;
+			} else {
+				var x = xs.a;
+				var xss = xs.b;
+				if (!ys.b) {
+					return accum;
+				} else {
+					var y = ys.a;
+					var yss = ys.b;
+					var delta = x - y;
+					var $temp$xs = xss,
+						$temp$ys = yss,
+						$temp$accum = accum + (delta * delta);
+					xs = $temp$xs;
+					ys = $temp$ys;
+					accum = $temp$accum;
+					continue distanceSquaredHelp;
+				}
+			}
+		}
+	});
+var $folkertdev$elm_kmeans$KMeans$distanceSquared = F2(
+	function (a, b) {
+		return A3($folkertdev$elm_kmeans$KMeans$distanceSquaredHelp, a, b, 0);
+	});
+var $elm_community$list_extra$List$Extra$minimumBy = F2(
+	function (f, ls) {
+		var minBy = F2(
+			function (x, _v1) {
+				var y = _v1.a;
+				var fy = _v1.b;
+				var fx = f(x);
+				return (_Utils_cmp(fx, fy) < 0) ? _Utils_Tuple2(x, fx) : _Utils_Tuple2(y, fy);
+			});
+		if (ls.b) {
+			if (!ls.b.b) {
+				var l_ = ls.a;
+				return $elm$core$Maybe$Just(l_);
+			} else {
+				var l_ = ls.a;
+				var ls_ = ls.b;
+				return $elm$core$Maybe$Just(
+					A3(
+						$elm$core$List$foldl,
+						minBy,
+						_Utils_Tuple2(
+							l_,
+							f(l_)),
+						ls_).a);
+			}
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $folkertdev$elm_kmeans$KMeans$closest = F2(
+	function (points, point) {
+		return A2(
+			$elm_community$list_extra$List$Extra$minimumBy,
+			$folkertdev$elm_kmeans$KMeans$distanceSquared(point),
+			points);
+	});
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$Dict$values = function (dict) {
+	return A3(
+		$elm$core$Dict$foldr,
+		F3(
+			function (key, value, valueList) {
+				return A2($elm$core$List$cons, value, valueList);
+			}),
+		_List_Nil,
+		dict);
+};
+var $folkertdev$elm_kmeans$KMeans$gatherBy = F2(
+	function (toKey, items) {
+		var updater = F2(
+			function (item, maybeValue) {
+				if (maybeValue.$ === 'Nothing') {
+					return $elm$core$Maybe$Just(
+						_List_fromArray(
+							[item]));
+				} else {
+					var value = maybeValue.a;
+					return $elm$core$Maybe$Just(
+						A2($elm$core$List$cons, item, value));
+				}
+			});
+		var folder = function (item) {
+			return A2(
+				$elm$core$Dict$update,
+				toKey(item),
+				updater(item));
+		};
+		return $elm$core$Dict$values(
+			A3($elm$core$List$foldl, folder, $elm$core$Dict$empty, items));
+	});
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $folkertdev$elm_kmeans$KMeans$reclusterHelp = F2(
+	function (centroids, points) {
+		return A2(
+			$folkertdev$elm_kmeans$KMeans$gatherBy,
+			A2(
+				$elm$core$Basics$composeL,
+				A2(
+					$elm$core$Basics$composeL,
+					$elm$core$Maybe$withDefault(_List_Nil),
+					$folkertdev$elm_kmeans$KMeans$closest(centroids)),
+				function ($) {
+					return $.vector;
+				}),
+			points);
+	});
+var $elm$core$List$sortBy = _List_sortBy;
+var $elm$core$List$sort = function (xs) {
+	return A2($elm$core$List$sortBy, $elm$core$Basics$identity, xs);
+};
+var $folkertdev$elm_kmeans$KMeans$findFixpoint = F3(
+	function (previousError, centroids, clusters) {
+		findFixpoint:
+		while (true) {
+			var newCentroids = A2(
+				$elm$core$List$map,
+				$folkertdev$elm_kmeans$KMeans$centroid(
+					function ($) {
+						return $.vector;
+					}),
+				clusters);
+			var newClusters = A2(
+				$folkertdev$elm_kmeans$KMeans$reclusterHelp,
+				newCentroids,
+				$elm$core$List$concat(clusters));
+			var errorVector = F2(
+				function (a, b) {
+					var sum = A4(
+						$folkertdev$elm_kmeans$KMeans$foldl2,
+						F3(
+							function (x, y, accum) {
+								return accum + (x - y);
+							}),
+						a,
+						b,
+						0);
+					return sum * sum;
+				});
+			var errorCentroids = F2(
+				function (a, b) {
+					var sum = A4(
+						$folkertdev$elm_kmeans$KMeans$foldl2,
+						F3(
+							function (x, y, accum) {
+								return accum + A2(errorVector, x, y);
+							}),
+						a,
+						b,
+						0);
+					return sum * sum;
+				});
+			var error = A2(errorCentroids, newCentroids, centroids);
+			if (((previousError - error) < 1.0e-12) || (error < 1.0e-12)) {
+				return {
+					centroids: $elm$core$List$sort(newCentroids),
+					clusters: newClusters
+				};
+			} else {
+				var $temp$previousError = error,
+					$temp$centroids = newCentroids,
+					$temp$clusters = newClusters;
+				previousError = $temp$previousError;
+				centroids = $temp$centroids;
+				clusters = $temp$clusters;
+				continue findFixpoint;
+			}
+		}
+	});
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
+var $elm_community$list_extra$List$Extra$greedyGroupsOfWithStep = F3(
+	function (size, step, xs) {
+		var xs_ = A2($elm$core$List$drop, step, xs);
+		var okayXs = $elm$core$List$length(xs) > 0;
+		var okayArgs = (size > 0) && (step > 0);
+		return (okayArgs && okayXs) ? A2(
+			$elm$core$List$cons,
+			A2($elm$core$List$take, size, xs),
+			A3($elm_community$list_extra$List$Extra$greedyGroupsOfWithStep, size, step, xs_)) : _List_Nil;
+	});
+var $elm_community$list_extra$List$Extra$greedyGroupsOf = F2(
+	function (size, xs) {
+		return A3($elm_community$list_extra$List$Extra$greedyGroupsOfWithStep, size, size, xs);
+	});
+var $elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2($elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var $elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var $folkertdev$elm_kmeans$KMeans$kmeansHelp = F2(
+	function (k, points) {
+		var l = ((($elm$core$List$length(points) + k) - 1) / k) | 0;
+		var groups = A2($elm_community$list_extra$List$Extra$greedyGroupsOf, l, points);
+		if (!points.b) {
+			return {centroids: _List_Nil, clusters: _List_Nil};
+		} else {
+			var first = points.a;
+			var infinity = 1 / 0;
+			var centroidVec = A2(
+				$elm$core$List$repeat,
+				$elm$core$List$length(first.vector),
+				0);
+			var centroids = A2($elm$core$List$repeat, k, centroidVec);
+			return A3($folkertdev$elm_kmeans$KMeans$findFixpoint, infinity, centroids, groups);
+		}
+	});
+var $folkertdev$elm_kmeans$KMeans$clusterBy = F3(
+	function (toVector, k, items) {
+		var wrapped = A2(
+			$elm$core$List$map,
+			function (v) {
+				return {
+					value: v,
+					vector: toVector(v)
+				};
+			},
+			items);
+		var result = A2($folkertdev$elm_kmeans$KMeans$kmeansHelp, k, wrapped);
+		return {
+			centroids: result.centroids,
+			clusters: A2(
+				$elm$core$List$map,
+				$elm$core$List$map(
+					function ($) {
+						return $.value;
+					}),
+				result.clusters)
+		};
+	});
+var $folkertdev$elm_kmeans$KMeans$clusterExactlyByHelp = F4(
+	function (remaining, toVector, k, items) {
+		clusterExactlyByHelp:
+		while (true) {
+			if (remaining <= 1) {
+				return A3($folkertdev$elm_kmeans$KMeans$clusterBy, toVector, k, items);
+			} else {
+				var result = A3($folkertdev$elm_kmeans$KMeans$clusterBy, toVector, k, items);
+				if (_Utils_eq(
+					$elm$core$List$length(result.clusters),
+					k)) {
+					return result;
+				} else {
+					if (items.b) {
+						var first = items.a;
+						var rest = items.b;
+						var $temp$remaining = remaining - 1,
+							$temp$toVector = toVector,
+							$temp$k = k,
+							$temp$items = _Utils_ap(
+							rest,
+							_List_fromArray(
+								[first]));
+						remaining = $temp$remaining;
+						toVector = $temp$toVector;
+						k = $temp$k;
+						items = $temp$items;
+						continue clusterExactlyByHelp;
+					} else {
+						return {centroids: _List_Nil, clusters: _List_Nil};
+					}
+				}
+			}
+		}
+	});
+var $folkertdev$elm_kmeans$KMeans$clusterExactlyBy = F3(
+	function (toVector, k, items) {
+		return A4(
+			$folkertdev$elm_kmeans$KMeans$clusterExactlyByHelp,
+			$elm$core$List$length(items),
+			toVector,
+			k,
+			items);
+	});
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
@@ -6247,6 +6772,7 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
@@ -6306,21 +6832,158 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
+var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $elm$core$Debug$toString = _Debug_toString;
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $ianmackenzie$elm_geometry$Circle2d$centerPoint = function (_v0) {
+	var properties = _v0.a;
+	return properties.centerPoint;
+};
+var $elm$svg$Svg$circle = $elm$svg$Svg$trustedNode('circle');
+var $elm$svg$Svg$Attributes$cx = _VirtualDom_attribute('cx');
+var $elm$svg$Svg$Attributes$cy = _VirtualDom_attribute('cy');
+var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$svg$Svg$Attributes$r = _VirtualDom_attribute('r');
+var $ianmackenzie$elm_geometry$Circle2d$radius = function (_v0) {
+	var properties = _v0.a;
+	return properties.radius;
+};
+var $ianmackenzie$elm_geometry_svg$Geometry$Svg$toString = function (_v0) {
+	var quantity = _v0.a;
+	return $elm$core$String$fromFloat(quantity);
+};
+var $ianmackenzie$elm_geometry$Point2d$unwrap = function (_v0) {
+	var coordinates = _v0.a;
+	return coordinates;
+};
+var $ianmackenzie$elm_geometry_svg$Geometry$Svg$circle2d = F2(
+	function (attributes, circle) {
+		var r = $elm$svg$Svg$Attributes$r(
+			$ianmackenzie$elm_geometry_svg$Geometry$Svg$toString(
+				$ianmackenzie$elm_geometry$Circle2d$radius(circle)));
+		var _v0 = $ianmackenzie$elm_geometry$Point2d$unwrap(
+			$ianmackenzie$elm_geometry$Circle2d$centerPoint(circle));
+		var x = _v0.x;
+		var y = _v0.y;
+		var cx = $elm$svg$Svg$Attributes$cx(
+			$elm$core$String$fromFloat(x));
+		var cy = $elm$svg$Svg$Attributes$cy(
+			$elm$core$String$fromFloat(y));
+		return A2(
+			$elm$svg$Svg$circle,
+			A2(
+				$elm$core$List$cons,
+				cx,
+				A2(
+					$elm$core$List$cons,
+					cy,
+					A2($elm$core$List$cons, r, attributes))),
+			_List_Nil);
+	});
+var $author$project$Main$colors = _List_fromArray(
+	['red', 'green', 'purple']);
+var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
+var $elm$svg$Svg$Attributes$opacity = _VirtualDom_attribute('opacity');
+var $ianmackenzie$elm_units$Quantity$Quantity = function (a) {
+	return {$: 'Quantity', a: a};
+};
+var $ianmackenzie$elm_units$Pixels$pixels = function (numPixels) {
+	return $ianmackenzie$elm_units$Quantity$Quantity(numPixels);
+};
+var $ianmackenzie$elm_geometry$Geometry$Types$Point2d = function (a) {
+	return {$: 'Point2d', a: a};
+};
+var $ianmackenzie$elm_geometry$Point2d$pixels = F2(
+	function (x, y) {
+		return $ianmackenzie$elm_geometry$Geometry$Types$Point2d(
+			{x: x, y: y});
+	});
+var $author$project$Main$queryResultToPoint = function (queryResult) {
+	return A2($ianmackenzie$elm_geometry$Point2d$pixels, queryResult.coordinates.latitude, queryResult.coordinates.longitude);
+};
+var $ianmackenzie$elm_geometry$Point2d$origin = $ianmackenzie$elm_geometry$Geometry$Types$Point2d(
+	{x: 0, y: 0});
+var $ianmackenzie$elm_geometry$Point2d$scaleAbout = F3(
+	function (_v0, k, _v1) {
+		var p0 = _v0.a;
+		var p = _v1.a;
+		return $ianmackenzie$elm_geometry$Geometry$Types$Point2d(
+			{x: p0.x + (k * (p.x - p0.x)), y: p0.y + (k * (p.y - p0.y))});
+	});
+var $author$project$Main$scale = A2($ianmackenzie$elm_geometry$Point2d$scaleAbout, $ianmackenzie$elm_geometry$Point2d$origin, 20);
+var $ianmackenzie$elm_geometry$Geometry$Types$Circle2d = function (a) {
+	return {$: 'Circle2d', a: a};
+};
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var $ianmackenzie$elm_units$Quantity$abs = function (_v0) {
+	var value = _v0.a;
+	return $ianmackenzie$elm_units$Quantity$Quantity(
+		$elm$core$Basics$abs(value));
+};
+var $ianmackenzie$elm_geometry$Circle2d$withRadius = F2(
+	function (givenRadius, givenCenterPoint) {
+		return $ianmackenzie$elm_geometry$Geometry$Types$Circle2d(
+			{
+				centerPoint: givenCenterPoint,
+				radius: $ianmackenzie$elm_units$Quantity$abs(givenRadius)
+			});
+	});
+var $author$project$Main$viewPoints = function (clusters) {
+	var viewPoint = F3(
+		function (opacity, color, queryResult) {
+			return A2(
+				$ianmackenzie$elm_geometry_svg$Geometry$Svg$circle2d,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$opacity(
+						$elm$core$String$fromFloat(opacity)),
+						$elm$svg$Svg$Attributes$fill(color)
+					]),
+				A2(
+					$ianmackenzie$elm_geometry$Circle2d$withRadius,
+					$ianmackenzie$elm_units$Pixels$pixels(4),
+					$author$project$Main$scale(
+						$author$project$Main$queryResultToPoint(queryResult))));
+		});
+	return $elm$core$List$concat(
+		A3(
+			$elm$core$List$map2,
+			F2(
+				function (color, coordinates) {
+					return A2(
+						$elm$core$List$map,
+						A2(viewPoint, 0.8, color),
+						coordinates);
+				}),
+			$author$project$Main$colors,
+			clusters));
+};
+var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'width', '100%')
+			]),
 		_List_fromArray(
 			[
 				A2(
 				$elm$html$Html$textarea,
 				_List_fromArray(
 					[
+						A2($elm$html$Html$Attributes$style, 'width', '100%'),
 						$elm$html$Html$Attributes$placeholder('Addresses'),
 						$elm$html$Html$Attributes$value(model.queries),
 						$elm$html$Html$Events$onInput($author$project$Main$QueriesChange)
@@ -6338,7 +7001,10 @@ var $author$project$Main$view = function (model) {
 					])),
 				A2(
 				$elm$html$Html$div,
-				_List_Nil,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'width', '100%')
+					]),
 				_List_fromArray(
 					[
 						A2(
@@ -6379,6 +7045,30 @@ var $author$project$Main$view = function (model) {
 										},
 										model.queryResults)))
 							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$svg$Svg$svg,
+						_List_fromArray(
+							[
+								$elm$svg$Svg$Attributes$width('2000'),
+								$elm$svg$Svg$Attributes$height('2000')
+							]),
+						function () {
+							var clustered = A3(
+								$folkertdev$elm_kmeans$KMeans$clusterExactlyBy,
+								function (building) {
+									return _List_fromArray(
+										[building.coordinates.longitude, building.coordinates.latitude]);
+								},
+								3,
+								model.queryResults);
+							return $author$project$Main$viewPoints(clustered.clusters);
+						}())
 					]))
 			]));
 };
