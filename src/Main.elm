@@ -28,26 +28,26 @@ main =
 
 
 type alias Model =
-    { addresses : String
-    , buildings : List Building
+    { queries : String
+    , queryResults : List QueryResult
     }
 
 
-type alias Building =
-    { address : String
+type alias QueryResult =
+    { displayName : String
     , coordinates : Coordinates
+    , osmClass : String
     }
 
 
-type Coordinates
-    = ValidCoordinates Float Float
-    | InvalidCoordinates String
+type alias Coordinates =
+    { latitiude : Float, longitude : Float }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { addresses = ""
-      , buildings = []
+    ( { queries = ""
+      , queryResults = []
       }
     , Cmd.none
     )
@@ -58,39 +58,25 @@ subscriptions _ =
     Sub.none
 
 
-fetchCoordinatesForAddresses : List String -> Cmd Msg
-fetchCoordinatesForAddresses addresses =
-    addresses
-        |> List.map fetchCoordinatesForAddress
+fetchQueries : List String -> Cmd Msg
+fetchQueries queries =
+    queries
+        |> List.map fetchQuery
         |> Cmd.batch
 
 
-fetchCoordinatesForAddress : String -> Cmd Msg
-fetchCoordinatesForAddress address =
+fetchQuery : String -> Cmd Msg
+fetchQuery query =
     Http.get
-        { url = "https://nominatim.openstreetmap.org/search?format=json&q=" ++ address
-        , expect = Http.expectJson GotCoordinates coordinatesDecoder
+        { url = "https://nominatim.openstreetmap.org/search?format=json&q=" ++ query
+        , expect = Http.expectJson GotQueryResult queryResultDecoder
         }
 
 
-coordinatesDecoder : Decoder Building
-coordinatesDecoder =
-    field "0" (field "class" string)
-        |> JD.andThen
-            (\osmClass ->
-                case osmClass of
-                    "building" ->
-                        buildingCoordinatesDecoder
-
-                    _ ->
-                        invalidCoordinatesDecoder
-            )
-
-
-buildingCoordinatesDecoder : Decoder Building
-buildingCoordinatesDecoder =
+queryResultDecoder : Decoder QueryResult
+queryResultDecoder =
     let
-        address =
+        displayName =
             field "0" (field "display_name" string)
 
         latitude =
@@ -99,25 +85,13 @@ buildingCoordinatesDecoder =
         longitude =
             field "0" (field "lon" stringFloat)
 
-        building addr lat long =
-            { address = addr, coordinates = ValidCoordinates lat long }
-    in
-    JD.map3 building address latitude longitude
-
-
-invalidCoordinatesDecoder : Decoder Building
-invalidCoordinatesDecoder =
-    let
-        address =
-            field "0" (field "display_name" string)
-
         osmClass =
             field "0" (field "class" string)
 
-        building addr class =
-            { address = addr, coordinates = InvalidCoordinates class }
+        queryResult displayN lat long osmClazz =
+            { displayName = displayN, coordinates = Coordinates lat long, osmClass = osmClazz }
     in
-    JD.map2 building address osmClass
+    JD.map4 queryResult displayName latitude longitude osmClass
 
 
 stringFloat : Decoder Float
@@ -139,43 +113,33 @@ stringFloat =
 
 
 type Msg
-    = AddressesChange String
-    | FetchCoordinates
-    | GotCoordinates (Result Http.Error Building)
+    = QueriesChange String
+    | FetchQueries
+    | GotQueryResult (Result Http.Error QueryResult)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        AddressesChange newAddresses ->
-            ( { model | addresses = newAddresses }, Cmd.none )
+        QueriesChange newQueries ->
+            ( { model | queries = newQueries }, Cmd.none )
 
-        FetchCoordinates ->
+        FetchQueries ->
             let
-                splittedAddresses =
-                    String.split "\n" model.addresses
+                splittedQueries =
+                    String.split "\n" model.queries
             in
-            ( { model | buildings = [] }, fetchCoordinatesForAddresses splittedAddresses )
+            ( { model | queryResults = [] }, fetchQueries splittedQueries )
 
-        GotCoordinates (Ok newBuilding) ->
-            ( { model | buildings = newBuilding :: model.buildings }, Cmd.none )
+        GotQueryResult (Ok newQueryResult) ->
+            ( { model | queryResults = newQueryResult :: model.queryResults }, Cmd.none )
 
-        GotCoordinates (Err e) ->
+        GotQueryResult (Err e) ->
             let
                 _ =
                     Debug.log "Error" e
             in
             ( model, Cmd.none )
-
-
-hasValidCoordinates : Building -> Bool
-hasValidCoordinates building =
-    case building.coordinates of
-        ValidCoordinates _ _ ->
-            True
-
-        InvalidCoordinates _ ->
-            False
 
 
 
@@ -185,11 +149,11 @@ hasValidCoordinates building =
 view : Model -> Html Msg
 view model =
     div []
-        [ textarea [ placeholder "Addresses", value model.addresses, onInput AddressesChange ] []
-        , button [ onClick FetchCoordinates ] [ text "Fetch Coordinates" ]
+        [ textarea [ placeholder "Addresses", value model.queries, onInput QueriesChange ] []
+        , button [ onClick FetchQueries ] [ text "Fetch Coordinates" ]
         , div []
-            [ p [] [ text "Address:", text model.addresses ]
-            , p [] [ text "Buildings:", text (Debug.toString (List.filter hasValidCoordinates model.buildings)) ]
-            , p [] [ text "Invalid Buildings:", text (Debug.toString (List.filter (\building -> not (hasValidCoordinates building)) model.buildings)) ]
+            [ p [] [ text "Address:", text model.queries ]
+            , p [] [ text "Buildings: ", text (Debug.toString (List.filter (\building -> building.osmClass == "building") model.queryResults)) ]
+            , p [] [ text "Others:", text (Debug.toString (List.filter (\building -> building.osmClass /= "building") model.queryResults)) ]
             ]
         ]
